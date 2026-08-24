@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/sqlite-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 // ---- Enums (check constraints) ----
@@ -41,7 +41,11 @@ const cabtype = () => text('member_type', { enum: ['cab_member', 'service_owner'
 const chwinkind = () => text('kind', { enum: ['window', 'freeze'] });
 
 const id = () => text('id').primaryKey().$defaultFn(() => randomUUID());
-const timestamp = () => text('created_at').default("(datetime('now'))");
+// `sql` makes Drizzle emit a real SQL expression so SQLite evaluates
+// strftime at insert time, instead of storing the literal string. The
+// %Y-%m-%dT%H:%M:%SZ format matches new Date().toISOString() used throughout
+// the app, so all timestamps are consistent ISO-8601 UTC.
+const timestamp = () => text('created_at').default(sql`(strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`);
 const date = () => text(); // SQLite DATE stored as TEXT 'YYYY-MM-DD'
 const datetime = () => text(); // SQLite DATETIME stored as TEXT ISO
 
