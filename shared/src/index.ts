@@ -17,4 +17,11 @@ export type {
   ErrorEnvelope,
   GenerateStoryInput,
   StoryDraft,
+  CreateChangeRequestInput,
+  UpdateChangeRequestInput,
+  CreateChangeTaskInput,
+  UpdateChangeTaskInput,
+  ApproveChangeInput,
+  ScheduleChangeInput,
+  CreateChangeWindowInput,
 } from './schemas';

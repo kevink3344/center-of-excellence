@@ -27,13 +27,37 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [project, setProject] = useState<Project | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    setError(null);
+    setProject(null);
     api.getProject(id)
       .then((r) => setProject(r.data))
-      .catch(() => setProject(null));
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load project'));
   }, [id]);
+
+  if (error) {
+    return (
+      <>
+        <PageHead
+          title="Project not found"
+          sub="This project doesn't exist or you don't have access."
+          actions={
+            <button className="secondary-button" onClick={() => navigate('/portfolio')}>
+              <ArrowLeft size={14} /> Back to Portfolio
+            </button>
+          }
+        />
+        <Panel title="Oops">
+          <div className="ai-result-empty">
+            <div><div style={{ fontSize: 28, marginBottom: 8 }}>🔎</div>{error}<br />Try selecting a project from the Portfolio instead.</div>
+          </div>
+        </Panel>
+      </>
+    );
+  }
 
   if (!project) {
     return (
@@ -192,9 +216,12 @@ export default function ProjectDetail() {
 
       {tab === 'deployments' && (
         <Panel title="Deployments" actions={<button className="primary-button"><Plus size={14} /> New Deployment</button>}>
+          <div className="ai-result" style={{ background: 'color-mix(in srgb, #a56c00 10%, transparent)', borderColor: '#a56c00', marginBottom: 16 }}>
+            <strong>Soft reminder:</strong> Link this deployment to an approved Change Request before shipping to production. This is a visual reminder, not a hard block.
+          </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Environment</th><th>Version</th><th>Status</th><th>Date</th></tr></thead>
+              <thead><tr><th>Environment</th><th>Version</th><th>Status</th><th>Date</th><th>Change Link</th></tr></thead>
               <tbody>
                 {p.deployments.map((d) => (
                   <tr key={d.version}>
@@ -202,6 +229,11 @@ export default function ProjectDetail() {
                     <td className="mono">{d.version}</td>
                     <td><StatusBadge status={d.status} /></td>
                     <td className="mono">{d.date}</td>
+                    <td>
+                      <span className="cell-sub">
+                        <span data-link={true} style={{ color: 'var(--accent)', cursor: 'pointer' }}>+ Link change (not set)</span>
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

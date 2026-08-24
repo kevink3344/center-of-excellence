@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -10,12 +11,16 @@ import {
   Bell,
   Search,
   LogOut,
+  GitBranch,
 } from 'lucide-react';
 import type { ThemeMode } from '@/theme';
+import { api } from '@/lib/api';
+import type { Notification } from '@/lib/api';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/portfolio', label: 'Portfolio', icon: KanbanSquare },
+  { to: '/change', label: 'Change', icon: GitBranch },
   { to: '/my-work', label: 'My Work', icon: UserCheck },
   { to: '/support', label: 'Support', icon: LifeBuoy },
 ];
@@ -28,6 +33,32 @@ interface AppLayoutProps {
 
 export default function AppLayout({ mode, onToggleTheme, children }: AppLayoutProps) {
   const navigate = useNavigate();
+  const [unread, setUnread] = useState(0);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+
+  const refreshUnread = useCallback(() => {
+    api.getUnreadCount()
+      .then((r) => setUnread(r.data.count))
+      .catch(() => setUnread(0));
+  }, []);
+
+  useEffect(() => {
+    refreshUnread();
+  }, [refreshUnread]);
+
+  useEffect(() => {
+    if (!showNotifs) return;
+    api.listNotifications()
+      .then((r) => setNotifs(r.data.slice(0, 12)))
+      .catch(() => setNotifs([]));
+  }, [showNotifs]);
+
+  const markAllRead = () => {
+    api.markAllNotificationsRead()
+      .then(() => { refreshUnread(); setNotifs((n) => n.map((x) => ({ ...x, read: true }))); })
+      .catch(() => {});
+  };
 
   return (
     <div className="app-shell">
@@ -79,10 +110,35 @@ export default function AppLayout({ mode, onToggleTheme, children }: AppLayoutPr
             {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
-          <button className="icon-button" title="Notifications" type="button">
-            <Bell size={18} />
-            <span className="notification-badge">3</span>
-          </button>
+          <div className="notification-wrap">
+            <button className="icon-button" title="Notifications" type="button" onClick={() => setShowNotifs((s) => !s)}>
+              <Bell size={18} />
+              {unread > 0 && <span className="notification-badge">{unread}</span>}
+            </button>
+            {showNotifs && (
+              <div className="notification-dropdown">
+                <div className="notification-head">
+                  <span>Notifications</span>
+                  <button className="icon-clear" onClick={markAllRead} type="button">Mark all read</button>
+                </div>
+                {notifs.length === 0 ? (
+                  <div className="ai-result-empty" style={{ padding: 14 }}><div>🔔</div>No notifications yet.</div>
+                ) : (
+                  <div className="stack">
+                    {notifs.map((n) => (
+                      <div key={n.id} className="notification-item" data-unread={!n.read}>
+                        <div className="cell-title">{n.title}</div>
+                        {n.body && <div className="cell-sub">{n.body}</div>}
+                        <div className="cell-sub" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {n.read ? 'Read' : 'New'} · {n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <button className="user-menu" onClick={() => navigate('/my-work')} type="button">
             <div className="avatar">JC</div>

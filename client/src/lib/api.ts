@@ -14,6 +14,20 @@ import type {
   TicketStatus,
   TicketPriority,
   RequirementType,
+  ChangeType,
+  ChangeCategory,
+  ChangeRisk,
+  ChangePriority,
+  ChangeStatus,
+  ChangeTaskStatus,
+  ChangeApprovalDecision,
+  CreateChangeRequestInput,
+  UpdateChangeRequestInput,
+  CreateChangeTaskInput,
+  UpdateChangeTaskInput,
+  ApproveChangeInput,
+  ScheduleChangeInput,
+  CreateChangeWindowInput,
 } from '@eidh/shared';
 
 // Entity row shapes (lightweight mirrors of DB rows — the server may include relations).
@@ -113,6 +127,84 @@ export interface Comment {
   author?: User | null;
 }
 
+export interface ChangeApproval {
+  id: string;
+  changeId: string;
+  approverId: string;
+  stage?: number | null;
+  roleLabel?: string | null;
+  decision: ChangeApprovalDecision;
+  comment?: string | null;
+  decidedAt?: string | null;
+  approver?: User | null;
+}
+
+export interface ChangeTask {
+  id: string;
+  changeId: string;
+  title: string;
+  assigneeId?: string | null;
+  status: ChangeTaskStatus;
+  position?: number | null;
+  assignee?: User | null;
+}
+
+export interface ChangeRequestListItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: ChangeType;
+  category: ChangeCategory;
+  priority: ChangePriority;
+  risk: ChangeRisk;
+  status: ChangeStatus;
+  reason?: string | null;
+  implementationPlan?: string | null;
+  rollbackPlan?: string | null;
+  testPlan?: string | null;
+  projectId?: string | null;
+  requestedBy?: string | null;
+  serviceOwner?: string | null;
+  plannedStartAt?: string | null;
+  plannedEndAt?: string | null;
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
+  implementedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  project?: ProjectListItem | null;
+  requestedByUser?: User | null;
+  serviceOwnerUser?: User | null;
+  tasks?: ChangeTask[];
+  approvals?: ChangeApproval[];
+}
+
+export interface ChangeRequest extends ChangeRequestListItem {
+  requestedBy?: string | null;
+  serviceOwner?: string | null;
+}
+
+export interface ChangeWindow {
+  id: string;
+  name: string;
+  kind: 'window' | 'freeze';
+  startAt: string;
+  endAt: string;
+  scope?: string | null;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  kind?: string | null;
+  title: string;
+  body?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  read: boolean;
+  createdAt?: string | null;
+}
+
 // Envelope conventions (spec §8.2)
 interface DataEnvelope<T> { data: T }
 interface PagedEnvelope<T> { data: T[]; meta: { page: number; pageSize: number; total: number } }
@@ -193,4 +285,63 @@ export const api = {
   // ai
   generateStory: (body: GenerateStoryInput) =>
     request<DataEnvelope<StoryDraft>>(`/api/v1/ai/story`, { method: 'POST', body: JSON.stringify(body) }),
+
+  // change management
+  listChangeRequests: (params?: Record<string, string>) => {
+    const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return request<DataEnvelope<ChangeRequestListItem[]>>(`/api/v1/change/requests${qs}`);
+  },
+  getChangeRequest: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}`),
+  createChangeRequest: (body: CreateChangeRequestInput) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests`, { method: 'POST', body: JSON.stringify(body) }),
+  updateChangeRequest: (id: string, body: UpdateChangeRequestInput) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteChangeRequest: (id: string) => request<void>(`/api/v1/change/requests/${id}`, { method: 'DELETE' }),
+
+  addChangeTask: (changeId: string, body: CreateChangeTaskInput) =>
+    request<DataEnvelope<ChangeTask>>(`/api/v1/change/requests/${changeId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateChangeTask: (taskId: string, body: UpdateChangeTaskInput) =>
+    request<DataEnvelope<ChangeTask>>(`/api/v1/change/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  submitChange: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/submit`, { method: 'POST' }),
+  addApproval: (id: string, body: ApproveChangeInput) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/approvals`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  scheduleChange: (id: string, body: ScheduleChangeInput) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  implementChange: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/implement`, { method: 'POST' }),
+  completeChange: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/complete`, { method: 'POST' }),
+  rollbackChange: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/rollback`, { method: 'POST' }),
+  cancelChange: (id: string) =>
+    request<DataEnvelope<ChangeRequest>>(`/api/v1/change/requests/${id}/cancel`, { method: 'POST' }),
+
+  // change windows
+  listChangeWindows: () => request<DataEnvelope<ChangeWindow[]>>(`/api/v1/change/windows`),
+  createChangeWindow: (body: CreateChangeWindowInput) =>
+    request<DataEnvelope<ChangeWindow>>(`/api/v1/change/windows`, { method: 'POST', body: JSON.stringify(body) }),
+  getChangeCalendar: () => request<DataEnvelope<{ changes: ChangeRequestListItem[]; windows: ChangeWindow[] }>>(`/api/v1/change/calendar`),
+
+  // notifications
+  listNotifications: () => request<DataEnvelope<Notification[]>>(`/api/v1/notifications`),
+  getUnreadCount: () => request<DataEnvelope<{ count: number }>>(`/api/v1/notifications/unread-count`),
+  markNotificationRead: (id: string) =>
+    request<DataEnvelope<Notification>>(`/api/v1/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () =>
+    request<DataEnvelope<{ ok: boolean }>>(`/api/v1/notifications/read-all`, { method: 'PATCH' }),
 };

@@ -4,6 +4,10 @@ import type {
   ProjectPriority,
   TicketStatus,
   TicketPriority,
+  ChangeStatus,
+  ChangePriority,
+  ChangeRisk,
+  ChangeType,
 } from '@eidh/shared';
 
 export function formatCurrency(n?: number | null): string {
@@ -100,4 +104,47 @@ export function statusBadgeClass(status: string): string {
   if (['planned', 'backlog', 'intake'].includes(s)) return 'badge-slate';
   if (['on_hold', 'pending'].includes(s)) return 'badge-amber';
   return 'badge-amber';
+}
+
+// ── Change Management helpers ──
+export function changeStatusLabel(status: ChangeStatus): string {
+  switch (status) {
+    case 'pending_approval': return 'Pending Approval';
+    case 'in_implementation': return 'In Implementation';
+    case 'rolled_back': return 'Rolled Back';
+    default: return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
+export function changeStatusBadge(status: ChangeStatus): string {
+  switch (status) {
+    case 'draft': return 'badge-slate';
+    case 'pending_approval': return 'badge-amber';
+    case 'approved': return 'badge-green';
+    case 'scheduled': return 'badge-blue';
+    case 'in_implementation': return 'badge-orange';
+    case 'testing': return 'badge-blue';
+    case 'closed': return 'badge-green';
+    case 'rejected': return 'badge-red';
+    case 'rolled_back': return 'badge-red';
+    case 'cancelled': return 'badge-slate';
+    default: return 'badge-slate';
+  }
+}
+
+export function changePriorityBadge(priority: ChangePriority): string {
+  return priorityBadge(priority);
+}
+
+export function changeRiskBadge(risk: ChangeRisk): string {
+  switch (risk) {
+    case 'high': return 'badge-red';
+    case 'medium': return 'badge-amber';
+    case 'low': return 'badge-slate';
+    default: return 'badge-slate';
+  }
+}
+
+export function changeTypeLabel(type: ChangeType): string {
+  return type.replace(/\b\w/g, (c) => c.toUpperCase());
 }

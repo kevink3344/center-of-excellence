@@ -3,6 +3,7 @@
 // Tables: users, business_units, projects, project_members,
 //         requirements, sprints, deployments, support_tickets, comments
 // Plus AI tables from `docs/plans/ai-component.md` §9.
+// Plus Change Management tables from `docs/plans/change-management.md` §4.
 // ─────────────────────────────────────────────────────────────
 import {
   text,
@@ -27,7 +28,17 @@ const denv = () => text('environment', { enum: ['dev', 'test', 'prod'] });
 const dstatus = () => text('status', { enum: ['pending', 'approved', 'deployed', 'failed'] });
 const tpriority = () => text('priority', { enum: ['p1', 'p2', 'p3', 'p4'] });
 const tstatus = () => text('status', { enum: ['open', 'in_progress', 'resolved', 'closed'] });
-const entType = () => text('entity_type', { enum: ['project', 'requirement', 'ticket'] });
+const entType = () => text('entity_type', { enum: ['project', 'requirement', 'ticket', 'change'] });
+
+// ---- Change Management enums (docs/plans/change-management.md §4) ----
+const chtype = () => text('type', { enum: ['standard', 'normal', 'major', 'emergency'] });
+const chcat = () => text('category', { enum: ['infrastructure', 'application', 'data', 'security', 'business'] });
+const chrisk = () => text('risk', { enum: ['low', 'medium', 'high'] });
+const chstatus = () => text('status', { enum: ['draft', 'pending_approval', 'approved', 'scheduled', 'in_implementation', 'testing', 'closed', 'rejected', 'rolled_back', 'cancelled'] });
+const chtaskstatus = () => text('status', { enum: ['todo', 'in_progress', 'done'] });
+const chdecision = () => text('decision', { enum: ['pending', 'approved', 'rejected', 'changes_requested'] });
+const cabtype = () => text('member_type', { enum: ['cab_member', 'service_owner', 'it_manager'] });
+const chwinkind = () => text('kind', { enum: ['window', 'freeze'] });
 
 const id = () => text('id').primaryKey().$defaultFn(() => randomUUID());
 const timestamp = () => text('created_at').default("(datetime('now'))");
@@ -144,13 +155,112 @@ export const comments = sqliteTable(
   'comments',
   {
     id: id(),
-    entityType: entType().notNull(), // 'project', 'requirement', 'ticket'
+    entityType: entType().notNull(), // 'project', 'requirement', 'ticket', 'change'
     entityId: text('entity_id').notNull(),
     authorId: text('author_id').references(() => users.id),
     body: text('body').notNull(),
     createdAt: timestamp(),
   },
   (t) => [index('comments_entity_idx').on(t.entityType, t.entityId)],
+);
+
+// ─────────────────────────────────────────────────────────────
+// Change Management tables (from `docs/plans/change-management.md` §4)
+// ─────────────────────────────────────────────────────────────
+export const changeRequests = sqliteTable(
+  'change_requests',
+  {
+    id: id(),
+    title: text('title').notNull(),
+    description: text('description'),
+    type: chtype().notNull().default('normal'),
+    category: chcat().notNull().default('application'),
+    priority: priority().notNull().default('medium'),
+    risk: chrisk().notNull().default('medium'),
+    status: chstatus().notNull().default('draft'),
+    reason: text('reason'),
+    implementationPlan: text('implementation_plan'),
+    rollbackPlan: text('rollback_plan'),
+    testPlan: text('test_plan'),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    requestedBy: text('requested_by').references(() => users.id),
+    serviceOwner: text('service_owner').references(() => users.id),
+    plannedStartAt: datetime(),
+    plannedEndAt: datetime(),
+    actualStartAt: datetime(),
+    actualEndAt: datetime(),
+    implementedAt: datetime(),
+    createdAt: timestamp(),
+    updatedAt: datetime(),
+  },
+  (t) => [index('change_requests_project_idx').on(t.projectId), index('change_requests_status_idx').on(t.status)],
+);
+
+export const changeTasks = sqliteTable(
+  'change_tasks',
+  {
+    id: id(),
+    changeId: text('change_id').notNull().references(() => changeRequests.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    assigneeId: text('assignee_id').references(() => users.id),
+    status: chtaskstatus().notNull().default('todo'),
+    position: integer('position').default(0),
+  },
+  (t) => [index('change_tasks_change_idx').on(t.changeId)],
+);
+
+export const changeApprovals = sqliteTable(
+  'change_approvals',
+  {
+    id: id(),
+    changeId: text('change_id').notNull().references(() => changeRequests.id, { onDelete: 'cascade' }),
+    approverId: text('approver_id').notNull().references(() => users.id),
+    stage: integer('stage').default(1),
+    roleLabel: text('role_label'),
+    decision: chdecision().notNull().default('pending'),
+    comment: text('comment'),
+    decidedAt: datetime(),
+  },
+  (t) => [index('change_approvals_change_idx').on(t.changeId)],
+);
+
+export const cabMembers = sqliteTable(
+  'cab_members',
+  {
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    memberType: cabtype().notNull().default('cab_member'),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.memberType] })],
+);
+
+export const changeWindows = sqliteTable(
+  'change_windows',
+  {
+    id: id(),
+    name: text('name').notNull(),
+    kind: chwinkind().notNull().default('window'),
+    startAt: datetime().notNull(),
+    endAt: datetime().notNull(),
+    scope: text('scope'),
+  },
+  (t) => [index('change_windows_dates_idx').on(t.startAt, t.endAt)],
+);
+
+// In-app notifications (spec: change-management.md §12 — notify on approval)
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind'), // 'change_approved', 'change_rejected', 'approval_requested', ...
+    title: text('title').notNull(),
+    body: text('body'),
+    entityType: text('entity_type'), // 'change'
+    entityId: text('entity_id'),
+    read: integer('read', { mode: 'boolean' }).notNull().default(false),
+    createdAt: timestamp(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.read)],
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -214,6 +324,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   ticketsReported: many(supportTickets, { relationName: 'reportedBy' }),
   ticketsAssigned: many(supportTickets, { relationName: 'assignee' }),
   comments: many(comments),
+  requestedChanges: many(changeRequests, { relationName: 'requestedBy' }),
+  ownedServices: many(changeRequests, { relationName: 'serviceOwner' }),
+  assignedChangeTasks: many(changeTasks),
+  approvals: many(changeApprovals),
+  cabMemberships: many(cabMembers),
+  notifications: many(notifications),
 }));
 
 export const businessUnitsRelations = relations(businessUnits, ({ one, many }) => ({
@@ -259,6 +375,34 @@ export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
 
 export const commentsRelations = relations(comments, ({ one }) => ({
   author: one(users, { fields: [comments.authorId], references: [users.id] }),
+}));
+
+export const changeRequestsRelations = relations(changeRequests, ({ one, many }) => ({
+  project: one(projects, { fields: [changeRequests.projectId], references: [projects.id] }),
+  requestedBy: one(users, { fields: [changeRequests.requestedBy], references: [users.id], relationName: 'requestedBy' }),
+  serviceOwner: one(users, { fields: [changeRequests.serviceOwner], references: [users.id], relationName: 'serviceOwner' }),
+  tasks: many(changeTasks),
+  approvals: many(changeApprovals),
+}));
+
+export const changeTasksRelations = relations(changeTasks, ({ one }) => ({
+  change: one(changeRequests, { fields: [changeTasks.changeId], references: [changeRequests.id] }),
+  assignee: one(users, { fields: [changeTasks.assigneeId], references: [users.id] }),
+}));
+
+export const changeApprovalsRelations = relations(changeApprovals, ({ one }) => ({
+  change: one(changeRequests, { fields: [changeApprovals.changeId], references: [changeRequests.id] }),
+  approver: one(users, { fields: [changeApprovals.approverId], references: [users.id] }),
+}));
+
+export const cabMembersRelations = relations(cabMembers, ({ one }) => ({
+  user: one(users, { fields: [cabMembers.userId], references: [users.id] }),
+}));
+
+export const changeWindowsRelations = relations(changeWindows, () => ({}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }));
 
 export const aiInsightsRelations = relations(aiInsights, ({ one }) => ({

@@ -8,6 +8,9 @@ import Intake from './pages/Intake';
 import Support from './pages/Support';
 import MyWork from './pages/MyWork';
 import Admin from './pages/Admin';
+import ChangeBoard from './pages/ChangeBoard';
+import ChangeDetail from './pages/ChangeDetail';
+import ChangeCalendar from './pages/ChangeCalendar';
 
 export default function App() {
   const { mode, toggle, paletteStyle } = useTheme();
@@ -23,6 +26,9 @@ export default function App() {
           <Route path="/support" element={<Support />} />
           <Route path="/my-work" element={<MyWork />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/change" element={<ChangeBoard />} />
+          <Route path="/change/:id" element={<ChangeDetail />} />
+          <Route path="/change/calendar" element={<ChangeCalendar />} />
         </Routes>
       </AppLayout>
     </div>

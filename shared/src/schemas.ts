@@ -1,5 +1,13 @@
 import { z } from 'zod';
 import {
+  CAB_MEMBER_TYPES,
+  CHANGE_APPROVAL_DECISIONS,
+  CHANGE_CATEGORIES,
+  CHANGE_RISKS,
+  CHANGE_STATUSES,
+  CHANGE_TASK_STATUSES,
+  CHANGE_TYPES,
+  CHANGE_WINDOW_KINDS,
   DEPLOYMENT_ENVIRONMENTS,
   DEPLOYMENT_STATUSES,
   PROJECT_PRIORITIES,
@@ -98,9 +106,86 @@ export const updateTicketSchema = z.object({
 });
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 
+// ---- Change Management (docs/plans/change-management.md §7.2) ----
+export const changeTypeSchema = z.enum(CHANGE_TYPES);
+export const changeCategorySchema = z.enum(CHANGE_CATEGORIES);
+export const changeRiskSchema = z.enum(CHANGE_RISKS);
+export const changePrioritySchema = z.enum(PROJECT_PRIORITIES); // low|medium|high|critical
+export const changeStatusSchema = z.enum(CHANGE_STATUSES);
+export const changeTaskStatusSchema = z.enum(CHANGE_TASK_STATUSES);
+export const changeApprovalDecisionSchema = z.enum(CHANGE_APPROVAL_DECISIONS);
+export const cabMemberTypeSchema = z.enum(CAB_MEMBER_TYPES);
+export const changeWindowKindSchema = z.enum(CHANGE_WINDOW_KINDS);
+
+// Create a change request (RFC). `rollbackPlan` required for normal/major/emergency.
+// Split the base object from the refine so the object keeps `.partial()` on the shape.
+const changeRequestBaseSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  type: changeTypeSchema.default('normal'),
+  category: changeCategorySchema.default('application'),
+  priority: changePrioritySchema.default('medium'),
+  risk: changeRiskSchema.default('medium'),
+  reason: z.string().optional(),
+  implementationPlan: z.string().optional(),
+  rollbackPlan: z.string().optional(),
+  testPlan: z.string().optional(),
+  projectId: z.string().optional(),
+  serviceOwner: z.string().optional(),
+  plannedStartAt: z.string().datetime().optional(),
+  plannedEndAt: z.string().datetime().optional(),
+});
+
+export const createChangeRequestSchema = changeRequestBaseSchema.superRefine((val, ctx) => {
+  if (['normal', 'major', 'emergency'].includes(val.type) && !val.rollbackPlan) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['rollbackPlan'],
+      message: 'Rollback plan is required for this change type',
+    });
+  }
+});
+export type CreateChangeRequestInput = z.infer<typeof changeRequestBaseSchema>;
+
+export const updateChangeRequestSchema = changeRequestBaseSchema.partial();
+export type UpdateChangeRequestInput = z.infer<typeof updateChangeRequestSchema>;
+
+export const createChangeTaskSchema = z.object({
+  title: z.string().min(1),
+});
+export type CreateChangeTaskInput = z.infer<typeof createChangeTaskSchema>;
+
+export const updateChangeTaskSchema = z.object({
+  title: z.string().min(1).optional(),
+  assigneeId: z.string().optional(),
+  status: changeTaskStatusSchema.optional(),
+});
+export type UpdateChangeTaskInput = z.infer<typeof updateChangeTaskSchema>;
+
+export const approveChangeSchema = z.object({
+  decision: changeApprovalDecisionSchema,
+  comment: z.string().optional(),
+});
+export type ApproveChangeInput = z.infer<typeof approveChangeSchema>;
+
+export const scheduleChangeSchema = z.object({
+  plannedStartAt: z.string().datetime(),
+  plannedEndAt: z.string().datetime(),
+});
+export type ScheduleChangeInput = z.infer<typeof scheduleChangeSchema>;
+
+export const createChangeWindowSchema = z.object({
+  name: z.string().min(1),
+  kind: changeWindowKindSchema.default('window'),
+  startAt: z.string().datetime(),
+  endAt: z.string().datetime(),
+  scope: z.string().optional(),
+});
+export type CreateChangeWindowInput = z.infer<typeof createChangeWindowSchema>;
+
 // ---- Comment ----
 export const createCommentSchema = z.object({
-  entityType: z.enum(['project', 'requirement', 'ticket']),
+  entityType: z.enum(['project', 'requirement', 'ticket', 'change']),
   entityId: z.string(),
   body: z.string().min(1),
 });

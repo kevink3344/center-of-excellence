@@ -63,3 +63,50 @@ export type TicketStatus = (typeof TICKET_STATUSES)[number];
 // ---- Comment entity types (spec §5: comments.entity_type CHECK) ----
 export const COMMENT_ENTITY_TYPES = ['project', 'requirement', 'ticket'] as const;
 export type CommentEntityType = (typeof COMMENT_ENTITY_TYPES)[number];
+
+// ---- CHANGE MANAGEMENT (docs/plans/change-management.md) ----
+// change_requests.type (spec: change_requests.type CHECK)
+export const CHANGE_TYPES = ['standard', 'normal', 'major', 'emergency'] as const;
+export type ChangeType = (typeof CHANGE_TYPES)[number];
+
+// change_requests.category (spec: change_requests.category CHECK)
+export const CHANGE_CATEGORIES = ['infrastructure', 'application', 'data', 'security', 'business'] as const;
+export type ChangeCategory = (typeof CHANGE_CATEGORIES)[number];
+
+// change_requests.risk (spec: change_requests.risk CHECK)
+export const CHANGE_RISKS = ['low', 'medium', 'high'] as const;
+export type ChangeRisk = (typeof CHANGE_RISKS)[number];
+
+// change_requests.status (spec: change_requests.status CHECK)
+export const CHANGE_STATUSES = [
+  'draft',
+  'pending_approval',
+  'approved',
+  'scheduled',
+  'in_implementation',
+  'testing',
+  'closed',
+  'rejected',
+  'rolled_back',
+  'cancelled',
+] as const;
+export type ChangeStatus = (typeof CHANGE_STATUSES)[number];
+
+// change_requests.priority (spec: change_requests.priority CHECK) — reuses PROJECT_PRIORITIES
+export type ChangePriority = ProjectPriority;
+
+// change_tasks.status (spec: change_tasks.status CHECK)
+export const CHANGE_TASK_STATUSES = ['todo', 'in_progress', 'done'] as const;
+export type ChangeTaskStatus = (typeof CHANGE_TASK_STATUSES)[number];
+
+// change_approvals.decision (spec: change_approvals.decision CHECK)
+export const CHANGE_APPROVAL_DECISIONS = ['pending', 'approved', 'rejected', 'changes_requested'] as const;
+export type ChangeApprovalDecision = (typeof CHANGE_APPROVAL_DECISIONS)[number];
+
+// cab_members.member_type (spec: cab_members.member_type CHECK)
+export const CAB_MEMBER_TYPES = ['cab_member', 'service_owner', 'it_manager'] as const;
+export type CabMemberType = (typeof CAB_MEMBER_TYPES)[number];
+
+// change_windows.kind (spec: change_windows.kind CHECK)
+export const CHANGE_WINDOW_KINDS = ['window', 'freeze'] as const;
+export type ChangeWindowKind = (typeof CHANGE_WINDOW_KINDS)[number];
