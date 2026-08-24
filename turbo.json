@@ -1,0 +1,33 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "TURSO_DATABASE_URL",
+    "TURSO_AUTH_TOKEN",
+    "AI_PROVIDER",
+    "AI_BASE_URL",
+    "AI_MODEL",
+    "AI_API_KEY",
+    "NODE_ENV",
+    "PORT",
+    "JWT_SECRET"
+  ],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"]
+    },
+    "db:generate": {},
+    "db:migrate": {},
+    "db:seed": {}
+  }
+}

@@ -1,0 +1,56 @@
+# =============================================================
+# EIDH — Enterprise Innovation & Delivery Hub
+# Stack: Node.js + React + Turso (libSQL)  (monorepo, Turborepo)
+# =============================================================
+
+# ---- Environment / secrets ----
+# Ignore all local env files, but KEEP the template (.env.example)
+.env
+.env.*
+!.env.example
+
+# ---- Node ----
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+/.turbo/
+.turbo/
+
+# ---- Logs ----
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Testing / coverage ----
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ---- Build outputs ----
+.vite/
+.eslintcache
+.cache/
+
+# ---- Environment / OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Editor / IDE ----
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ---- Misc ----
+.env.local
+*.local

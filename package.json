@@ -1,0 +1,32 @@
+{
+  "name": "enterprise-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Innovation & Delivery Hub (EIDH) — CoE & ALM Portal monorepo",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:generate": "npm run db:generate -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:seed": "npm run db:seed -w server"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@11.11.0",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "turbo": "^2.3.3",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  }
+}
