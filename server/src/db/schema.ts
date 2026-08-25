@@ -316,6 +316,46 @@ export const projectSimilarity = sqliteTable(
 );
 
 // ─────────────────────────────────────────────────────────────
+// Application Idea Generator (docs/plans/app-idea.md §8)
+// draft → published → archived lifecycle
+// ─────────────────────────────────────────────────────────────
+export const APP_IDEA_STATUSES = ['draft', 'published', 'archived'] as const;
+export type AppIdeaStatus = (typeof APP_IDEA_STATUSES)[number];
+
+export const applicationIdeas = sqliteTable(
+  'application_ideas',
+  {
+    id: id(),
+    authorId: text('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    ideaText: text('idea_text').notNull(),
+    model: text('model'), // AI model used to augment (null = deterministic)
+    userClass: text('user_class', { enum: ['personal', 'small_team', 'department', 'enterprise'] }).notNull(),
+    appSize: text('app_size', { enum: ['small', 'medium', 'large'] }).notNull(),
+    audience: text('audience', { enum: ['internal', 'external'] }).notNull(),
+    connectivity: integer('connectivity', { mode: 'boolean' }).notNull().default(false),
+    design: text('design').notNull(), // JSON-encoded AppDesign
+    status: text('status', { enum: APP_IDEA_STATUSES }).notNull().default('draft'),
+    publishedProjectId: text('published_project_id').references(() => projects.id, { onDelete: 'set null' }),
+    createdAt: timestamp(),
+    updatedAt: datetime(),
+  },
+  (t) => [index('application_ideas_author_idx').on(t.authorId), index('application_ideas_status_idx').on(t.status)],
+);
+
+// ─────────────────────────────────────────────────────────────
+// App settings / configuration store (document KV).
+// A single `app_settings` table keyed by name; values are JSON-encoded.
+// Used for admin-configurable defaults such as the Application Idea
+// Generator's technology stack, auth mode, and default databases.
+// ─────────────────────────────────────────────────────────────
+export const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(), // JSON-encoded value
+  updatedAt: timestamp(),
+});
+
+// ─────────────────────────────────────────────────────────────
 // Relations
 // ─────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
@@ -334,6 +374,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   approvals: many(changeApprovals),
   cabMemberships: many(cabMembers),
   notifications: many(notifications),
+  applicationIdeas: many(applicationIdeas),
+}));
+
+export const applicationIdeasRelations = relations(applicationIdeas, ({ one }) => ({
+  author: one(users, { fields: [applicationIdeas.authorId], references: [users.id] }),
+  publishedProject: one(projects, { fields: [applicationIdeas.publishedProjectId], references: [projects.id] }),
 }));
 
 export const businessUnitsRelations = relations(businessUnits, ({ one, many }) => ({

@@ -11,6 +11,8 @@ import Admin from './pages/Admin';
 import ChangeBoard from './pages/ChangeBoard';
 import ChangeDetail from './pages/ChangeDetail';
 import ChangeCalendar from './pages/ChangeCalendar';
+import AppIdeas from './pages/AppIdeas';
+import IdeaDetail from './pages/IdeaDetail';
 
 export default function App() {
   const { mode, toggle, paletteStyle } = useTheme();
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/change" element={<ChangeBoard />} />
           <Route path="/change/:id" element={<ChangeDetail />} />
           <Route path="/change/calendar" element={<ChangeCalendar />} />
+          <Route path="/ideas" element={<AppIdeas />} />
+          <Route path="/ideas/:id" element={<IdeaDetail />} />
         </Routes>
       </AppLayout>
     </div>

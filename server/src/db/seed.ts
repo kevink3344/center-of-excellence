@@ -15,6 +15,8 @@ import {
   cabMembers,
   changeWindows,
   notifications,
+  applicationIdeas,
+  appSettings,
 } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -31,6 +33,8 @@ async function main() {
   await db.delete(deployments);
   await db.delete(sprints);
   await db.delete(requirements);
+  await db.delete(applicationIdeas);
+  await db.delete(appSettings);
   await db.delete(projects);
   await db.delete(businessUnits);
   await db.delete(users);
@@ -129,6 +133,68 @@ async function main() {
     { id: 'req-1', projectId: seededProjects[0].id, title: 'View case history', type: 'user_story', story: 'As a support agent, I want to view case history so I can resolve faster.', status: 'done', assigneeId: u3.id },
     { id: 'req-2', projectId: seededProjects[0].id, title: 'Escalate P1 tickets', type: 'user_story', story: 'As a support agent, I want to escalate P1 tickets.', status: 'in_progress', assigneeId: u3.id },
     { id: 'req-3', projectId: seededProjects[1].id, title: 'Parse claim docs', type: 'task', story: 'As a claims analyst, I want to parse claim documents.', status: 'backlog', assigneeId: u4.id },
+  ]);
+
+  console.log('💡 Seeding application idea drafts…');
+  await db.insert(applicationIdeas).values([
+    {
+      id: 'idea-1001',
+      authorId: 'dev-0001',
+      title: 'Vendor Invoice Flagging',
+      ideaText: 'Flag vendor invoices outside approved spend thresholds and route them for approval.',
+      model: 'deepseek-v4-flash-vision-exp',
+      userClass: 'department',
+      appSize: 'medium',
+      audience: 'internal',
+      connectivity: true,
+      design: JSON.stringify({
+        name: 'Vendor Invoice Flagging',
+        headline: 'Flag over-threshold invoices and route approval.',
+        summary: 'A medium internal app for department users that flags over-threshold vendor invoices and routes approval.',
+        architecture: 'Modular monolith + API, split modules',
+        stack: ['React', 'Node.js (Express) API', 'PostgreSQL / SQLite', 'Message queue (RabbitMQ / Service Bus)'],
+        dataModel: { coreEntities: ['Invoice', 'Vendor', 'Approval', 'Budget'], relationships: ['Invoice relates to Vendor (many-to-one)'] },
+        integrations: [
+          { name: 'ERP / Finance system', purpose: 'Sync master data and post transactions' },
+          { name: 'Identity provider (Entra)', purpose: 'SSO, provisioning, and access control' },
+          { name: 'Notification/email service', purpose: 'Alerts, approvals, and scheduled reports' },
+        ],
+        security: { authentication: 'M365/Entra SSO (federated)', authorization: 'Role-based, per-BU', dataProtection: 'Internal policy, least-privilege' },
+        estimate: { effort: 'M', tShirt: 'M', weeks: 12, team: ['2-4 developers'] },
+        phases: [{ name: 'Foundation', weeks: 3, focus: 'Scaffold, schema, auth, CI' }],
+        risks: [{ risk: 'Scope creep', mitigation: 'Lock MVP via readyStories.' }],
+        readyStories: [{ title: 'Flag invoices', story: 'As a finance analyst, I want to flag over-threshold invoices.', acceptance: ['Given an invoice exceeds the threshold, it is flagged.'] }],
+        reasoning: 'Deterministic draft from the 4 answers.',
+      }),
+      status: 'draft',
+    },
+    {
+      id: 'idea-1002',
+      authorId: 'dev-0001',
+      title: 'Employee Onboarding Hub',
+      ideaText: 'Automate laptop, email, and badge provisioning for new hires.',
+      model: undefined,
+      userClass: 'small_team',
+      appSize: 'small',
+      audience: 'internal',
+      connectivity: false,
+      design: JSON.stringify({
+        name: 'Employee Onboarding Hub',
+        headline: 'Provision new-hire access in a day.',
+        summary: 'A small internal app for small team users that automates provisioning for new hires.',
+        architecture: 'Single-page app + single API (monolith)',
+        stack: ['React', 'Node.js (Express) API', 'PostgreSQL / SQLite'],
+        dataModel: { coreEntities: ['Employee', 'ProvisioningRequest', 'System', 'Role'], relationships: [] },
+        integrations: [],
+        security: { authentication: 'M365/Entra SSO (federated)', authorization: 'Role-based, per-BU', dataProtection: 'Internal policy, least-privilege' },
+        estimate: { effort: 'S', tShirt: 'S', weeks: 6, team: ['1-2 developers'] },
+        phases: [{ name: 'Foundation', weeks: 2, focus: 'Scaffold, schema, auth' }],
+        risks: [{ risk: 'Cross-system dependencies', mitigation: 'Define clear integration contracts.' }],
+        readyStories: [{ title: 'Provision access', story: 'As an HR administrator, I want to provision access automatically.', acceptance: ['Given a new hire, systems are provisioned.'] }],
+        reasoning: 'Deterministic draft from the 4 answers.',
+      }),
+      status: 'draft',
+    },
   ]);
 
   console.log('🚀 Seeding deployments…');
@@ -241,6 +307,17 @@ async function main() {
     { id: 'ct-2', changeId: chg1001.id, title: 'Run integration tests', assigneeId: u3.id, status: 'in_progress', position: 1 },
     { id: 'ct-3', changeId: chg1003.id, title: 'Deploy canary', assigneeId: u3.id, status: 'done', position: 0 },
   ]);
+
+  console.log('⚙️ Seeding generator settings…');
+  await db.insert(appSettings).values({
+    key: 'generator_settings',
+    value: JSON.stringify({
+      techStack: ['Node.js (Express)', 'React', 'Turso (libSQL) — dev / Azure SQL Server — prod', 'Docker'],
+      authMode: 'jwt',
+      defaultDatabase: 'turso',
+      productionDatabase: 'azure_sql',
+    }),
+  });
 
   console.log('✅ Seed complete.');
   process.exit(0);

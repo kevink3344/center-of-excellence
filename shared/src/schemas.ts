@@ -204,21 +204,127 @@ export const paginationSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
 
-// ---- AI: story generation (docs/plans/ai-component.md §4 Module B) ----
-// Request body for POST /api/v1/ai/story.
-export const generateStorySchema = z.object({
-  prompt: z.string().min(1, 'Prompt is required').max(4000, 'Prompt is too long'),
-});
-export type GenerateStoryInput = z.infer<typeof generateStorySchema>;
+// ---- AI: application idea generation (docs/plans/app-idea.md) ----
+// Replaces the legacy story generator (ai-component.md §4 Module B).
 
-// Structured output the AI must return (Zod-validated, human-editable draft).
-export const storyDraftSchema = z.object({
-  title: z.string().min(1),
-  story: z.string().min(1),
-  acceptance: z.array(z.string()).min(1),
+// Wizard answers (4 questions + analysis model + optional template basis).
+export const appIdeaAnswersSchema = z.object({
+  userClass: z.enum(['personal', 'small_team', 'department', 'enterprise']),
+  appSize: z.enum(['small', 'medium', 'large']),
+  audience: z.enum(['internal', 'external']),
+  connectivity: z.boolean(),
+  model: z.string().optional(), // model id (undefined = deterministic)
+  templateId: z.string().optional(), // base an existing idea on a prior draft
+  ideaText: z.string().max(2000).optional(), // free-form basis (optional)
+});
+export type AppIdeaAnswers = z.infer<typeof appIdeaAnswersSchema>;
+
+// The generated design document (human-editable draft).
+export const appDesignSchema = z.object({
+  name: z.string().min(1),
+  headline: z.string().min(1),
+  summary: z.string().min(1),
+  architecture: z.string().min(1),
+  stack: z.array(z.string()).min(1),
+  dataModel: z.object({
+    coreEntities: z.array(z.string()).min(1),
+    relationships: z.array(z.string()),
+  }),
+  integrations: z.array(z.object({ name: z.string(), purpose: z.string() })),
+  security: z.object({
+    authentication: z.string(),
+    authorization: z.string(),
+    dataProtection: z.string(),
+  }),
+  estimate: z.object({
+    effort: z.enum(['XS', 'S', 'M', 'L', 'XL']),
+    tShirt: z.string(),
+    weeks: z.number().int().nonnegative(),
+    team: z.array(z.string()),
+  }),
+  phases: z.array(z.object({ name: z.string(), weeks: z.number().int().nonnegative(), focus: z.string() })),
+  risks: z.array(z.object({ risk: z.string(), mitigation: z.string() })),
+  readyStories: z.array(
+    z.object({
+      title: z.string(),
+      story: z.string(),
+      acceptance: z.array(z.string()),
+    }),
+  ),
   reasoning: z.string(),
 });
-export type StoryDraft = z.infer<typeof storyDraftSchema>;
+export type AppDesign = z.infer<typeof appDesignSchema>;
+
+// Request body for POST /api/v1/ideas/generate (AI or deterministic).
+export const generateIdeaSchema = appIdeaAnswersSchema;
+export type GenerateIdeaInput = z.infer<typeof generateIdeaSchema>;
+
+// POST /api/v1/ideas (save generated design as a draft).
+export const createIdeaSchema = z.object({
+  title: z.string().min(1),
+  ideaText: z.string().min(1),
+  model: z.string().optional(),
+  userClass: z.enum(['personal', 'small_team', 'department', 'enterprise']),
+  appSize: z.enum(['small', 'medium', 'large']),
+  audience: z.enum(['internal', 'external']),
+  connectivity: z.boolean(),
+  design: appDesignSchema,
+});
+export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
+
+// PATCH /api/v1/ideas/:id
+export const updateIdeaSchema = z.object({
+  title: z.string().min(1).optional(),
+  ideaText: z.string().min(1).optional(),
+  design: appDesignSchema.partial().optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+});
+export type UpdateIdeaInput = z.infer<typeof updateIdeaSchema>;
+
+// ─────────────────────────────────────────────────────────────
+// Admin-configurable Generator defaults (docs/plans/app-idea.md §7.4)
+// These control what the Application Idea Generator uses by default:
+//   - the technology stack it recommends (e.g. Node, not .NET)
+//   - the authentication scheme (JWT, with optional SSO)
+//   - the default DB (Turso for dev) vs production DB (Azure SQL)
+// Stored in `app_settings` (key `generator_settings`), JSON-encoded.
+// ─────────────────────────────────────────────────────────────
+export const GENERATOR_AUTH_MODES = ['jwt', 'sso', 'jwt_sso'] as const;
+export const GENERATOR_DB_OPTIONS = ['turso', 'azure_sql', 'postgres', 'sqlite'] as const;
+
+export const generatorSettingsSchema = z.object({
+  // Recommended stack. The generator prefers these over its hard-coded defaults.
+  techStack: z.array(z.string().min(1)).min(1),
+  // authMode: 'jwt' (default) | 'sso' | 'jwt_sso'
+  authMode: z.enum(GENERATOR_AUTH_MODES),
+  // Dev default database (Turso) and production default (Azure SQL).
+  defaultDatabase: z.enum(GENERATOR_DB_OPTIONS),
+  productionDatabase: z.enum(GENERATOR_DB_OPTIONS),
+  updatedAt: z.string().optional(),
+});
+export type GeneratorSettings = z.infer<typeof generatorSettingsSchema>;
+export type GeneratorSettingsInput = z.input<typeof generatorSettingsSchema>;
+
+export const DEFAULT_GENERATOR_SETTINGS: GeneratorSettings = {
+  techStack: ['Node.js (Express)', 'React', 'Turso (libSQL) — dev / Azure SQL Server — prod', 'Docker'],
+  authMode: 'jwt',
+  defaultDatabase: 'turso',
+  productionDatabase: 'azure_sql',
+};
+
+// POST /api/v1/ideas/:id/publish
+export const publishIdeaSchema = z.object({
+  projectId: z.string().optional(), // publish into an existing project
+  title: z.string().min(1).optional(), // default: draft.title
+  description: z.string().optional(), // default: design.summary
+  businessUnitId: z.string().optional(),
+  businessValue: z.number().min(1).max(10).optional(),
+  effort: z.enum(['XS', 'S', 'M', 'L', 'XL']).optional(),
+  priority: projectPrioritySchema.optional(),
+  budget: z.number().nonnegative().optional(),
+});
+export type PublishIdeaInput = z.infer<typeof publishIdeaSchema>;
+
 export type Pagination = z.infer<typeof paginationSchema>;
 
 // ---- Response envelope convention (spec §8.2) ----

@@ -7,8 +7,11 @@ import type {
   CreateTicketInput,
   UpdateTicketInput,
   CreateCommentInput,
-  GenerateStoryInput,
-  StoryDraft,
+  CreateIdeaInput,
+  UpdateIdeaInput,
+  PublishIdeaInput,
+  GenerateIdeaInput,
+  AppDesign,
   ProjectStatus,
   ProjectPriority,
   TicketStatus,
@@ -28,6 +31,7 @@ import type {
   ApproveChangeInput,
   ScheduleChangeInput,
   CreateChangeWindowInput,
+  GeneratorSettings,
 } from '@eidh/shared';
 
 // Entity row shapes (lightweight mirrors of DB rows — the server may include relations).
@@ -125,6 +129,32 @@ export interface Comment {
   body: string;
   createdAt?: string | null;
   author?: User | null;
+}
+
+export type AppIdeaStatus = 'draft' | 'published';
+
+export interface Idea {
+  id: string;
+  authorId?: string | null;
+  title: string;
+  ideaText?: string | null;
+  model?: string | null;
+  userClass?: string | null;
+  appSize?: string | null;
+  audience?: string | null;
+  connectivity?: boolean | null;
+  design?: AppDesign | null;
+  status: AppIdeaStatus;
+  publishedProjectId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  author?: User | null;
+}
+
+export interface ModelInfo {
+  id: string;
+  provider: string;
+  label: string;
 }
 
 export interface ChangeApproval {
@@ -283,8 +313,35 @@ export const api = {
   listUsers: () => request<DataEnvelope<User[]>>(`/api/v1/users`),
 
   // ai
-  generateStory: (body: GenerateStoryInput) =>
-    request<DataEnvelope<StoryDraft>>(`/api/v1/ai/story`, { method: 'POST', body: JSON.stringify(body) }),
+  getAiModels: () => request<DataEnvelope<{ models: ModelInfo[]; default: string }>>(`/api/v1/ai/models`),
+  generateIdea: (body: GenerateIdeaInput) =>
+    request<DataEnvelope<AppDesign>>(`/api/v1/ideas/generate`, { method: 'POST', body: JSON.stringify(body) }),
+
+  // application ideas
+  createIdea: (body: CreateIdeaInput) =>
+    request<DataEnvelope<Idea>>(`/api/v1/ideas`, { method: 'POST', body: JSON.stringify(body) }),
+  listIdeas: (params?: Record<string, string>) => {
+    const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return request<DataEnvelope<Idea[]>>(`/api/v1/ideas${qs}`);
+  },
+  getIdea: (id: string) => request<DataEnvelope<Idea>>(`/api/v1/ideas/${id}`),
+  updateIdea: (id: string, body: UpdateIdeaInput) =>
+    request<DataEnvelope<Idea>>(`/api/v1/ideas/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  publishIdea: (id: string, body: PublishIdeaInput) =>
+    request<DataEnvelope<{ idea: Idea; project: Project }>>(`/api/v1/ideas/${id}/publish`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteIdea: (id: string) => request<void>(`/api/v1/ideas/${id}`, { method: 'DELETE' }),
+
+  // generator settings (admin-configurable defaults)
+  getGeneratorSettings: () =>
+    request<DataEnvelope<GeneratorSettings>>(`/api/v1/settings/generator`),
+  updateGeneratorSettings: (body: GeneratorSettings) =>
+    request<DataEnvelope<GeneratorSettings>>(`/api/v1/settings/generator`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
 
   // change management
   listChangeRequests: (params?: Record<string, string>) => {

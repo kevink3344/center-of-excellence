@@ -110,3 +110,20 @@ export type CabMemberType = (typeof CAB_MEMBER_TYPES)[number];
 // change_windows.kind (spec: change_windows.kind CHECK)
 export const CHANGE_WINDOW_KINDS = ['window', 'freeze'] as const;
 export type ChangeWindowKind = (typeof CHANGE_WINDOW_KINDS)[number];
+
+// ── APPLICATION IDEA GENERATOR (docs/plans/app-idea.md) ──
+// application_ideas.user_class (spec: app-idea.md §8)
+export const APP_IDEA_USER_CLASSES = ['personal', 'small_team', 'department', 'enterprise'] as const;
+export type AppIdeaUserClass = (typeof APP_IDEA_USER_CLASSES)[number];
+
+// application_ideas.app_size (spec: app-idea.md §8)
+export const APP_IDEA_APP_SIZES = ['small', 'medium', 'large'] as const;
+export type AppIdeaAppSize = (typeof APP_IDEA_APP_SIZES)[number];
+
+// application_ideas.audience (spec: app-idea.md §8)
+export const APP_IDEA_AUDIENCES = ['internal', 'external'] as const;
+export type AppIdeaAudience = (typeof APP_IDEA_AUDIENCES)[number];
+
+// application_ideas.status (spec: app-idea.md §10)
+export const APP_IDEA_STATUSES = ['draft', 'published', 'archived'] as const;
+export type AppIdeaStatus = (typeof APP_IDEA_STATUSES)[number];

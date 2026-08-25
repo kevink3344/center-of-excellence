@@ -12,6 +12,7 @@ import {
   Search,
   LogOut,
   GitBranch,
+  Lightbulb,
 } from 'lucide-react';
 import type { ThemeMode } from '@/theme';
 import { api } from '@/lib/api';
@@ -20,6 +21,7 @@ import type { Notification } from '@/lib/api';
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/portfolio', label: 'Portfolio', icon: KanbanSquare },
+  { to: '/ideas', label: 'Application Ideas', icon: Lightbulb },
   { to: '/change', label: 'Change', icon: GitBranch },
   { to: '/my-work', label: 'My Work', icon: UserCheck },
   { to: '/support', label: 'Support', icon: LifeBuoy },

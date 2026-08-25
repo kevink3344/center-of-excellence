@@ -1,10 +1,11 @@
 // Provider-agnostic LLM abstraction (docs/plans/ai-component.md §8).
-// Reads `AI_PROVIDER`/`AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` from env.
+// Reads the model registry from env (docs/plans/app-idea.md §7.1).
 // Currently implements the OpenAI-compatible chat completions protocol, which
-// DeepSeek, Azure OpenAI (v1), and Ollama all speak. Swap/extend here without
+// DeepSeek, Azure OpenAI (v1), Ollama, Meta, and xAI all speak. Each model ID
+// can map to its own provider (base URL + API key). Swap/extend here without
 // touching feature code.
 
-import { env } from '../config/env';
+import { getModelConfig, listModelIds, modelRegistry } from '../config/env';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -35,7 +36,8 @@ interface OpenAICompatibleResponse {
 
 // Null out content after parsing to avoid leaking full payloads in logs.
 export async function chat(request: ChatRequest): Promise<ChatResponse> {
-  if (!env.AI_API_KEY || !env.AI_BASE_URL) {
+  const config = getModelConfig(request.model);
+  if (!config || !config.apiKey || !config.baseUrl) {
     throw new Error('AI provider not configured (AI_BASE_URL / AI_API_KEY missing)');
   }
 
@@ -47,14 +49,30 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
   if (request.maxTokens) body.max_tokens = request.maxTokens;
   if (request.responseFormat === 'json') body.response_format = { type: 'json_object' };
 
-  const res = await fetch(`${env.AI_BASE_URL.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.AI_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
+  // Fail fast if the provider is slow/unreachable so callers can fall back.
+  const timeoutMs = 60_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`AI provider timed out after ${timeoutMs / 1000}s`);
+    }
+    throw err;
+  }
+  clearTimeout(timer);
 
   if (!res.ok) {
     // Read body for a helpful message but never log secrets.
@@ -84,5 +102,20 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
 }
 
 export function defaultModel(): string {
-  return env.AI_MODEL || 'deepseek-chat';
+  return listModelIds()[0] || modelRegistry[0]?.id || 'deepseek-chat';
+}
+
+// Metadata exposed to the UI / drop-down (docs/plans/app-idea.md §7.1).
+export interface ModelInfo {
+  id: string;
+  provider: string;
+  label: string;
+}
+
+export function modelCatalog(): ModelInfo[] {
+  return modelRegistry.map((m) => ({
+    id: m.id,
+    provider: m.provider,
+    label: `${m.provider} · ${m.id}`,
+  }));
 }

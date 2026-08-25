@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Calendar, Download, Plus, Check, ArrowRight } from 'lucide-react';
+import { Calendar, Download, Plus, ArrowRight } from 'lucide-react';
 import { PageHead, Panel, KpiCard, StatusBadge, Badge } from '@/components/ui';
+import { useNavigate } from 'react-router-dom';
 import { formatCurrency, priorityBadge, priorityDotColor } from '@/lib/format';
-import { generateStory as localGenerateStory, EXAMPLE_PROMPTS } from '@/lib/storyGenerator';
-import { api } from '@/lib/api';
-import type { ProjectListItem } from '@/lib/api';
-import type { StoryDraft } from '@/lib/storyGenerator';
+import IdeaWizard from '@/components/IdeaWizard';
+import type { Idea } from '@/lib/api';
 
 const STATUS_BARS = [
   { label: 'Intake', count: 5, color: '#94a3b8', height: 140 },
@@ -32,58 +30,8 @@ const AT_RISK = [
 ];
 
 export default function Dashboard() {
-  const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [draft, setDraft] = useState<StoryDraft | null>(null);
-  const [accepted, setAccepted] = useState(false);
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-  const [selectedProject, setSelectedProject] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    api.listProjects()
-      .then((r) => setProjects(r.data))
-      .catch(() => setProjects([]));
-  }, []);
-
-  const generate = async (text?: string) => {
-    const input = (text ?? prompt).trim() || 'As the finance team, we need a way to flag vendor invoices that fall outside our approved spend thresholds so we can stop overpayments before they are approved.';
-    setLoading(true);
-    setAccepted(false);
-    setSaved(false);
-    try {
-      // Prefer the real AI service; fall back to the deterministic generator on failure.
-      const { data } = await api.generateStory({ prompt: input });
-      setDraft(data);
-    } catch {
-      setDraft(localGenerateStory(input));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const acceptDraft = async () => {
-    if (!draft || !selectedProject) return;
-    setSaving(true);
-    try {
-      await api.createRequirement(selectedProject, {
-        title: draft.title,
-        story: draft.story,
-        type: 'user_story',
-        acceptanceCriteria: draft.acceptance.join('\n'),
-      });
-      setAccepted(true);
-      setSaved(true);
-      setPrompt('');
-      setDraft(null);
-    } catch (err) {
-      setAccepted(false);
-      alert(err instanceof Error ? err.message : 'Failed to save requirement');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const navigate = useNavigate();
+  const onIdeaSaved = (idea: Idea) => navigate(`/ideas/${idea.id}`);
 
   return (
     <>
@@ -98,6 +46,9 @@ export default function Dashboard() {
           </>
         }
       />
+
+      {/* APPLICATION IDEA GENERATOR */}
+      <IdeaWizard onSaved={onIdeaSaved} />
 
       {/* KPI CARDS */}
       <section className="kpi-grid" aria-label="Key metrics">
@@ -206,91 +157,6 @@ export default function Dashboard() {
         </div>
       </Panel>
 
-      {/* AI REQUIREMENTS & STORY GENERATOR */}
-      <section className="panel ai-panel" aria-label="AI Requirements and Story Generator">
-        <div className="panel-head">
-          <div>
-            <div className="panel-title">Requirements &amp; Story Generator</div>
-            <div className="panel-sub">AI copilot — turn a description into a user story with acceptance criteria</div>
-          </div>
-          <span className="badge badge-blue">✨ Module B</span>
-        </div>
-
-        <div className="ai-generator-grid">
-          <div>
-            <label className="ai-field-label" htmlFor="storyInput">Describe the feature / request</label>
-            <textarea
-              id="storyInput" className="ai-textarea"
-              placeholder="e.g. As the finance team, we need a way to flag vendor invoices that fall outside our approved spend thresholds so we can stop overpayments before they're approved..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <div className="ai-examples">
-              {EXAMPLE_PROMPTS.map((ex) => (
-                <span key={ex.label} className="ai-example-chip" onClick={() => setPrompt(ex.text)}>✨ {ex.label}</span>
-              ))}
-            </div>
-            <div className="ai-actions">
-              <button className="primary-button ai-gen" type="button" onClick={() => generate()} disabled={loading}>
-                ✨ Generate Story
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="ai-result">
-              {loading ? (
-                <div className="ai-result-loading"><span className="spinner" />Generating story…</div>
-              ) : !draft ? (
-                <div className="ai-result-empty">
-                  <div>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
-                    Enter a description and click <strong>Generate Story</strong>.<br />
-                    The AI draft will appear here, ready to edit.
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="story-block">
-                    <div className="story-label">Title</div>
-                    <div className="story-text">{draft.title}</div>
-                  </div>
-                  <div className="story-block">
-                    <div className="story-label">User Story</div>
-                    <div className="story-text">{draft.story}</div>
-                  </div>
-                  <div className="story-block">
-                    <div className="story-label">Acceptance Criteria</div>
-                    <ul className="story-acceptance">
-                      {draft.acceptance.map((c: string, i: number) => <li key={i}>{c}</li>)}
-                    </ul>
-                  </div>
-                  <div className="ai-reasoning">{draft.reasoning}</div>
-                  <div className="ai-actions" style={{ marginTop: 14 }}>
-                    <label className="ai-field-label" htmlFor="acceptProject">Save to project</label>
-                    <select
-                      id="acceptProject"
-                      className="input-control"
-                      value={selectedProject}
-                      onChange={(e) => setSelectedProject(e.target.value)}
-                    >
-                      <option value="">Select a project…</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                    <button className="primary-button" onClick={acceptDraft} disabled={accepted || saving || !draft || !selectedProject}>
-                      <Check size={14} /> {saving ? 'Saving…' : accepted ? 'Saved' : 'Accept & Save Draft'}
-                    </button>
-                    <button className="secondary-button" onClick={() => setPrompt(draft.story)}>Fill Input</button>
-                    <button className="secondary-button" onClick={() => generate()}>Regenerate</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
     </>
   );
 }

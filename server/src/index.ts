@@ -9,6 +9,8 @@ import supportRouter from './routes/support';
 import usersRouter from './routes/users';
 import commentsRouter from './routes/comments';
 import aiRouter from './routes/ai';
+import ideasRouter from './routes/ideas';
+import settingsRouter from './routes/settings';
 import changeRouter from './routes/change';
 import notificationsRouter from './routes/notifications';
 import { errorHandler, notFound } from './middleware/error';
@@ -34,6 +36,8 @@ app.use('/api/v1/support/tickets', requireAuth, supportRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/comments', requireAuth, commentsRouter);
 app.use('/api/v1/ai', requireAuth, aiRouter);
+app.use('/api/v1/ideas', requireAuth, ideasRouter);
+app.use('/api/v1/settings', requireAuth, settingsRouter);
 app.use('/api/v1/change', requireAuth, changeRouter);
 app.use('/api/v1/notifications', requireAuth, notificationsRouter);
 

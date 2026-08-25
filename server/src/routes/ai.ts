@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { generateStory } from '../controllers/ai';
-import { validate } from '../middleware/validate';
-import { generateStorySchema } from '@eidh/shared';
+import { getModels } from '../controllers/ai';
 
 const router = Router();
 
-// POST /api/v1/ai/story
-router.post('/story', validate(generateStorySchema, 'body'), generateStory);
+// GET /api/v1/ai/models — list selectable AI models (from .env AI_MODELS).
+router.get('/models', getModels);
 
 export default router;

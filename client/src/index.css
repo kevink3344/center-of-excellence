@@ -322,9 +322,27 @@ tbody tr:hover { background: color-mix(in srgb, var(--card-bg) 60%, var(--app-bg
   border-left: 2px solid var(--accent); font-size: 12px; color: var(--text-muted); border-radius: 0 2px 2px 0;
 }
 .ai-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.ai-field-group { margin-bottom: 12px; }
+.wizard-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .wizard-steps { grid-template-columns: 1fr; } }
+.wizard-step { display: grid; gap: 6px; }
+
+/* ─────────────── FILTER CHIPS / STATUS ─────────────── */
+.status-filter { display: flex; gap: 4px; flex-wrap: wrap; }
+.filter-chip {
+  background: var(--app-bg); color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 2px;
+  padding: 5px 10px; font-size: 12px; cursor: pointer;
+}
+.filter-chip:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); color: var(--text); }
+.filter-chip.active { background: color-mix(in srgb, var(--accent) 14%, var(--app-bg)); border-color: var(--accent); color: var(--text); }
+.link-button {
+  background: transparent; border: none; color: var(--accent);
+  font-size: 13px; font-weight: 600; cursor: pointer; padding: 0;
+}
+.link-button:hover { text-decoration: underline; }
 
 /* ─────────────── UTILITY ─────────────── */
-.stack { display: flex; flex-direction: column; gap: 20px; }
 .row { display: flex; align-items: center; gap: 10px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
