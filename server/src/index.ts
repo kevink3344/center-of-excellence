@@ -13,6 +13,7 @@ import ideasRouter from './routes/ideas';
 import settingsRouter from './routes/settings';
 import changeRouter from './routes/change';
 import notificationsRouter from './routes/notifications';
+import apiDocsRouter from './routes/apidocs';
 import { errorHandler, notFound } from './middleware/error';
 import { requireAuth } from './middleware/auth';
 import { env } from './config/env';
@@ -40,6 +41,9 @@ app.use('/api/v1/ideas', requireAuth, ideasRouter);
 app.use('/api/v1/settings', requireAuth, settingsRouter);
 app.use('/api/v1/change', requireAuth, changeRouter);
 app.use('/api/v1/notifications', requireAuth, notificationsRouter);
+
+// Swagger UI + raw OpenAPI JSON (public, no auth — dev/docs only).
+app.use('/', apiDocsRouter);
 
 app.use(notFound);
 app.use(errorHandler);

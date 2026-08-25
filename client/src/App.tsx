@@ -13,6 +13,7 @@ import ChangeDetail from './pages/ChangeDetail';
 import ChangeCalendar from './pages/ChangeCalendar';
 import AppIdeas from './pages/AppIdeas';
 import IdeaDetail from './pages/IdeaDetail';
+import ApiDocs from './pages/ApiDocs';
 
 export default function App() {
   const { mode, toggle, paletteStyle } = useTheme();
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/change/calendar" element={<ChangeCalendar />} />
           <Route path="/ideas" element={<AppIdeas />} />
           <Route path="/ideas/:id" element={<IdeaDetail />} />
+          <Route path="/admin/api-docs" element={<ApiDocs />} />
         </Routes>
       </AppLayout>
     </div>

@@ -4,7 +4,6 @@
 // available, the wizard answers + design) so the user can adapt rather than
 // start from blank. A "None / Clear" option restores a blank input.
 import { useEffect, useState } from 'react';
-import { LayoutTemplate } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Idea } from '@/lib/api';
 
@@ -60,7 +59,6 @@ export default function IdeaTemplatePicker({
   return (
     <div className="ai-field-group" style={{ marginTop: 12 }}>
       <label className="ai-field-label" htmlFor="ideaTemplate">
-        <LayoutTemplate size={12} style={{ verticalAlign: '-1px', marginRight: 4 }} />
         Start from a template (a saved idea)
       </label>
       <select id="ideaTemplate" className="input-control" value={value} onChange={(e) => handleChange(e.target.value)}>

@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { PageHead, Panel, Field, Badge } from '@/components/ui';
 import { priorityBadge, priorityDotColor } from '@/lib/format';
+import { api } from '@/lib/api';
+import type { ProjectStatus, ProjectPriority } from '@eidh/shared';
 
 const EFFORTS = ['XS', 'S', 'M', 'L', 'XL'];
 const BUS = ['Finance', 'Operations', 'IT', 'HR', 'Legal', 'Marketing'];
+const STATUSES: ProjectStatus[] = ['intake', 'scored', 'approved', 'discovery', 'in_progress', 'uat', 'deployed', 'on_hold', 'retired'];
+const PRIORITIES: ProjectPriority[] = ['low', 'medium', 'high', 'critical'];
 
 // WSJF-inspired auto-score: (business value * reach) / effort.
 function scoreRequest(value: number, effort: string, reach = 5): { score: number; priority: string; reasoning: string } {
@@ -18,16 +22,49 @@ function scoreRequest(value: number, effort: string, reach = 5): { score: number
 
 export default function Intake() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', bu: BUS[0], description: '', value: 6, effort: 'M', budget: '' });
+  const [form, setForm] = useState({
+    title: '', bu: BUS[0], description: '', value: 6, effort: 'M', budget: '',
+    status: 'intake' as ProjectStatus, priority: 'medium' as ProjectPriority,
+  });
   const [enhanced, setEnhanced] = useState<null | { score: number; priority: string; reasoning: string; draft: string }>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<{ id: string } | null>(null);
 
+  useEffect(() => {
+    api.me().then((r) => setMe(r.data)).catch(() => setMe(null));
+  }, []);
+
+  // Keep the selected priority in sync with the auto-score unless the user overrides it.
   const live = scoreRequest(form.value, form.effort);
+  const priorityTouched = enhanced ? enhanced.priority !== 'medium' : false;
 
   const enhance = () => {
-    setEnhanced({
-      ...scoreRequest(form.value, form.effort),
-      draft: `Proposal: ${form.title || 'Untitled request'}\nEmpowers the ${form.bu} team to ${form.description || 'streamline their core workflow'}.\nEstimated effort: ${form.effort}. Recommended PM: based on similar initiatives in ${form.bu}.`,
-    });
+    const s = scoreRequest(form.value, form.effort);
+    setEnhanced({ ...s, draft: `Proposal: ${form.title || 'Untitled request'}\nEmpowers the ${form.bu} team to ${form.description || 'streamline their core workflow'}.\nEstimated effort: ${form.effort}. Recommended PM: based on similar initiatives in ${form.bu}.` });
+    setForm((f) => ({ ...f, priority: s.priority as ProjectPriority }));
+  };
+
+  const submit = async () => {
+    if (!form.title.trim()) { setError('Title is required'); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const created = await api.createProject({
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        businessValue: form.value,
+        effort: form.effort as any,
+        budget: form.budget ? Number(form.budget) : undefined,
+        priority: form.priority,
+        status: form.status,
+        requestorId: me?.id,
+      });
+      navigate(`/projects/${created.data.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create request');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -64,14 +101,31 @@ export default function Intake() {
               </Field>
             </div>
 
+            <div className="grid-2">
+              <Field label="Status">
+                <select className="input-control" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ProjectStatus })}>
+                  {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select className="input-control" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as ProjectPriority })}>
+                  {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </Field>
+            </div>
+
             <Field label="Budget (optional)">
               <input className="input-control" type="number" placeholder="e.g. 250000" value={form.budget}
                 onChange={(e) => setForm({ ...form, budget: e.target.value })} />
             </Field>
 
+            {error && <div className="muted" style={{ color: '#ba3040', fontSize: 13 }}>{error}</div>}
+
             <div className="row">
-              <button className="primary-button" onClick={() => navigate('/portfolio')}>Submit Request</button>
-              <button className="secondary-button" onClick={() => navigate('/portfolio')}>Cancel</button>
+              <button className="primary-button" onClick={submit} disabled={submitting}>
+                {submitting ? 'Submitting…' : 'Submit Request'}
+              </button>
+              <button className="secondary-button" onClick={() => navigate('/portfolio')} disabled={submitting}>Cancel</button>
             </div>
           </div>
         </Panel>
@@ -87,6 +141,7 @@ export default function Intake() {
               <span className="muted" style={{ fontSize: 12 }}>{live.reasoning}</span>
             </div>
             <div className="progress"><div className="progress-bar" style={{ width: `${Math.min(100, live.score)}%` }} /></div>
+            {priorityTouched && <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>Priority overridden by “Enhance” — adjust manually if needed.</div>}
           </Panel>
 
           <Panel title="✨ Enhance with AI" sub="Draft a first-pass business case (Module A)" className="ai-panel"

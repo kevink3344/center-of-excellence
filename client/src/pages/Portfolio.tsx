@@ -11,6 +11,7 @@ const COLUMNS: { key: string; label: string; color: string }[] = [
   { key: 'intake', label: 'Intake', color: '#94a3b8' },
   { key: 'scored', label: 'Scored', color: '#94a3b8' },
   { key: 'approved', label: 'Approved', color: '#a9c9ff' },
+  { key: 'discovery', label: 'Discovery', color: '#5fa8ff' },
   { key: 'in_progress', label: 'In Progress', color: '#5fa8ff' },
   { key: 'uat', label: 'UAT', color: '#5fa8ff' },
   { key: 'deployed', label: 'Deployed', color: '#1e8c52' },
@@ -18,7 +19,7 @@ const COLUMNS: { key: string; label: string; color: string }[] = [
 
 // Progress estimate derived from project status.
 const STATUS_PROGRESS: Record<string, number> = {
-  intake: 10, scored: 25, approved: 40, in_progress: 60, uat: 80, deployed: 100, on_hold: 50, retired: 100,
+  intake: 10, scored: 25, approved: 40, discovery: 50, in_progress: 60, uat: 80, deployed: 100, on_hold: 50, retired: 100,
 };
 
 export default function Portfolio() {

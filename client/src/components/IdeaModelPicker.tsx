@@ -3,7 +3,6 @@
 // from `AI_MODELS` in `.env`. The chosen model is sent with the generate
 // request and persisted on the draft for audit.
 import { useEffect, useState } from 'react';
-import { Cpu } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { ModelInfo } from '@/lib/api';
 
@@ -48,7 +47,6 @@ export default function IdeaModelPicker({
   return (
     <div className="ai-field-group">
       <label className="ai-field-label" htmlFor="ideaModel">
-        <Cpu size={12} style={{ verticalAlign: '-1px', marginRight: 4 }} />
         AI model
       </label>
       <select

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHead, Panel, StatusBadge } from '@/components/ui';
 import { api } from '@/lib/api';
 import {
@@ -33,6 +34,7 @@ const DB_LABELS: Record<string, string> = {
 };
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<GeneratorSettings | null>(null);
   const [techStackInput, setTechStackInput] = useState('');
   const [authMode, setAuthMode] = useState<GeneratorSettings['authMode']>('jwt');
@@ -99,6 +101,22 @@ export default function Admin() {
   return (
     <>
       <PageHead title="Admin" sub="Manage users, roles, and configuration." />
+      <Panel
+        title="API Reference"
+        sub="Interactive Swagger UI for all EIDH REST CRUD + lifecycle endpoints."
+        actions={
+          <button className="primary-button ai-gen" type="button" onClick={() => navigate('/admin/api-docs')}>
+            Open API Reference
+          </button>
+        }
+      >
+        <div className="muted" style={{ fontSize: 13 }}>
+          Browse and try the full REST API — projects, requirements, sprints, support tickets, ideas, change
+          management, notifications, settings, and more. The OpenAPI doc is served by the Express server at{' '}
+          <code className="mono">/api-docs.json</code>.
+        </div>
+      </Panel>
+
       <div className="grid-2">
         <Panel title="Users & Roles" sub="System-defined roles from spec §5">
           <div className="table-wrap">

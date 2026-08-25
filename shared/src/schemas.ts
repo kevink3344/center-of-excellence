@@ -43,8 +43,9 @@ export const createProjectSchema = z.object({
   businessUnitId: z.string().optional(),
   businessValue: z.number().min(1).max(10).optional(),
   effort: z.enum(['XS', 'S', 'M', 'L', 'XL']).optional(),
-  budget: z.number().nonnegative().optional(),
+  status: projectStatusSchema.optional(),
   priority: projectPrioritySchema.optional(),
+  budget: z.number().nonnegative().optional(),
   requestorId: z.string().optional(),
 });
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;

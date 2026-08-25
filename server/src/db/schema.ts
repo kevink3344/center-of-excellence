@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto';
 
 // ---- Enums (check constraints) ----
 const rolen = () => text('role', { enum: ['requestor', 'analyst', 'developer', 'pm', 'executive', 'support'] });
-const pstatus = () => text('status', { enum: ['intake', 'scored', 'approved', 'in_progress', 'uat', 'deployed', 'on_hold', 'retired'] });
+const pstatus = () => text('status', { enum: ['intake', 'scored', 'approved', 'discovery', 'in_progress', 'uat', 'deployed', 'on_hold', 'retired'] });
 const priority = () => text('priority', { enum: ['low', 'medium', 'high', 'critical'] });
 const rtype = () => text('type', { enum: ['user_story', 'bug', 'task', 'epic'] });
 const rstatus = () => text('status', { enum: ['backlog', 'in_progress', 'in_review', 'done'] });

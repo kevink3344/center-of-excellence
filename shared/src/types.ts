@@ -20,6 +20,7 @@ export const PROJECT_STATUSES = [
   'intake',
   'scored',
   'approved',
+  'discovery',
   'in_progress',
   'uat',
   'deployed',

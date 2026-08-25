@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { PageHead, Panel, StatusBadge, Badge } from '@/components/ui';
-import { formatCurrency, formatDate, priorityBadge, priorityDotColor, ticketPriorityBadge, ticketPriorityDotColor } from '@/lib/format';
+import { ArrowLeft, Plus, Pencil } from 'lucide-react';
+import { PageHead, Panel, StatusBadge, Badge, Field } from '@/components/ui';
+import { formatCurrency, formatDate, priorityBadge, priorityDotColor, ticketPriorityBadge, ticketPriorityDotColor, projectStatusLabel } from '@/lib/format';
 import { api } from '@/lib/api';
 import type { Project } from '@/lib/api';
+import type { ProjectStatus, ProjectPriority } from '@eidh/shared';
 
 type Tab = 'overview' | 'requirements' | 'sprints' | 'deployments' | 'support' | 'activity';
 
+const STATUSES: ProjectStatus[] = ['intake', 'scored', 'approved', 'discovery', 'in_progress', 'uat', 'deployed', 'on_hold', 'retired'];
+const PRIORITIES: ProjectPriority[] = ['low', 'medium', 'high', 'critical'];
+
 // Coarse progress estimate derived from project status.
 const STATUS_PROGRESS: Record<string, number> = {
-  intake: 10, scored: 25, approved: 40, in_progress: 60, uat: 80, deployed: 100, on_hold: 50, retired: 100,
+  intake: 10, scored: 25, approved: 40, discovery: 50, in_progress: 60, uat: 80, deployed: 100, on_hold: 50, retired: 100,
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -28,6 +32,13 @@ export default function ProjectDetail() {
   const [tab, setTab] = useState<Tab>('overview');
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [draft, setDraft] = useState({
+    title: '', description: '', status: 'intake' as ProjectStatus, priority: 'medium' as ProjectPriority,
+    budget: '', score: '', startDate: '', targetDate: '',
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -37,6 +48,46 @@ export default function ProjectDetail() {
       .then((r) => setProject(r.data))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load project'));
   }, [id]);
+
+  const startEdit = () => {
+    if (!project) return;
+    setDraft({
+      title: project.title,
+      description: project.description ?? '',
+      status: project.status,
+      priority: (project.priority ?? 'medium') as ProjectPriority,
+      budget: project.budget != null ? String(project.budget) : '',
+      score: project.score != null ? String(project.score) : '',
+      startDate: project.startDate ?? '',
+      targetDate: project.targetDate ?? '',
+    });
+    setEditError(null);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!id) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      const updated = await api.updateProject(id, {
+        title: draft.title.trim(),
+        description: draft.description.trim() || undefined,
+        status: draft.status,
+        priority: draft.priority,
+        budget: draft.budget ? Number(draft.budget) : undefined,
+        score: draft.score ? Number(draft.score) : undefined,
+        startDate: draft.startDate || undefined,
+        targetDate: draft.targetDate || undefined,
+      });
+      setProject((prev) => (prev ? { ...prev, ...updated.data } : updated.data));
+      setEditing(false);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Failed to update project');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (error) {
     return (
@@ -126,9 +177,14 @@ export default function ProjectDetail() {
         title={p.title}
         sub={`${p.code} · ${p.bu} · PM: ${p.pm}`}
         actions={
-          <button className="secondary-button" onClick={() => navigate('/portfolio')}>
-            <ArrowLeft size={14} /> Portfolio
-          </button>
+          <div className="row">
+            <button className="secondary-button" onClick={() => navigate('/portfolio')}>
+              <ArrowLeft size={14} /> Portfolio
+            </button>
+            <button className="primary-button" onClick={startEdit}>
+              <Pencil size={14} /> Edit
+            </button>
+          </div>
         }
       />
 
@@ -143,6 +199,47 @@ export default function ProjectDetail() {
           <div className="progress"><div className="progress-bar" style={{ width: `${p.progress}%` }} /></div>
         </div>
       </div>
+
+      {/* Inline edit form */}
+      {editing && (
+        <Panel title={`Edit ${p.title}`} sub="Update the project's status, priority, and core details.">
+          <div className="grid-2">
+            <Field label="Title">
+              <input className="input-control" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+            </Field>
+            <Field label="Description">
+              <input className="input-control" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+            </Field>
+            <Field label="Status">
+              <select className="input-control" value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as ProjectStatus })}>
+                {STATUSES.map((s) => <option key={s} value={s}>{projectStatusLabel(s)}</option>)}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select className="input-control" value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value as ProjectPriority })}>
+                {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </Field>
+            <Field label="Budget">
+              <input className="input-control" type="number" value={draft.budget} onChange={(e) => setDraft({ ...draft, budget: e.target.value })} />
+            </Field>
+            <Field label="Score">
+              <input className="input-control" type="number" value={draft.score} onChange={(e) => setDraft({ ...draft, score: e.target.value })} />
+            </Field>
+            <Field label="Start date">
+              <input className="input-control" type="date" value={draft.startDate} onChange={(e) => setDraft({ ...draft, startDate: e.target.value })} />
+            </Field>
+            <Field label="Target date">
+              <input className="input-control" type="date" value={draft.targetDate} onChange={(e) => setDraft({ ...draft, targetDate: e.target.value })} />
+            </Field>
+          </div>
+          {editError && <div className="muted" style={{ color: '#ba3040', fontSize: 13, marginTop: 12 }}>{editError}</div>}
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="primary-button" onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+            <button className="secondary-button" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
+          </div>
+        </Panel>
+      )}
 
       {/* Tabs */}
       <div className="tabs">

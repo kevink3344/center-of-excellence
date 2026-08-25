@@ -33,6 +33,7 @@ export function projectStatusBadge(status: ProjectStatus): string {
     case 'intake': return 'badge-slate';
     case 'scored': return 'badge-slate';
     case 'approved': return 'badge-amber';
+    case 'discovery': return 'badge-blue';
     case 'in_progress': return 'badge-orange';
     case 'uat': return 'badge-blue';
     case 'deployed': return 'badge-green';
@@ -99,7 +100,7 @@ export function ticketStatusBadge(status: TicketStatus): string {
 export function statusBadgeClass(status: string): string {
   const s = status.toLowerCase();
   if (['deployed', 'done', 'resolved', 'closed', 'approved', 'active', 'completed'].includes(s)) return 'badge-green';
-  if (['in_progress', 'uat', 'scored'].includes(s)) return 'badge-blue';
+  if (['in_progress', 'uat', 'scored', 'discovery'].includes(s)) return 'badge-blue';
   if (['open', 'critical', 'failed'].includes(s)) return 'badge-red';
   if (['planned', 'backlog', 'intake'].includes(s)) return 'badge-slate';
   if (['on_hold', 'pending'].includes(s)) return 'badge-amber';

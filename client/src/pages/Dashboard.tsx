@@ -9,6 +9,7 @@ const STATUS_BARS = [
   { label: 'Intake', count: 5, color: '#94a3b8', height: 140 },
   { label: 'Scored', count: 4, color: '#94a3b8', height: 100 },
   { label: 'Approved', count: 3, color: '#a9c9ff', height: 70 },
+  { label: 'Discovery', count: 2, color: '#5fa8ff', height: 60 },
   { label: 'In Prog.', count: 2, color: '#5fa8ff', height: 50 },
   { label: 'UAT', count: 4, color: '#5fa8ff', height: 110 },
   { label: 'Deployed', count: 3, color: '#1e8c52', height: 80 },

@@ -185,12 +185,22 @@ input, textarea, select { font: inherit; }
 }
 .input-control {
   background: var(--input-bg); color: var(--text);
-  border: 1px solid var(--border); border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 26%, var(--border));
+  border-radius: 2px;
   padding: 9px 12px; font-size: 14px; width: 100%;
 }
-.input-control:focus { outline: none; border-color: var(--accent); }
+.input-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
 .input-control:disabled { opacity: 0.6; }
-select.input-control { appearance: none; }
+/* Selects — `appearance: none` strips the native arrow, so draw a custom chevron */
+select.input-control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238291a5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
 
 /* ─────────────── KPI CARDS ─────────────── */
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -213,6 +223,20 @@ select.input-control { appearance: none; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
 .panel-title { font-size: 14px; font-weight: 600; margin: 0; }
 .panel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─────────────── SWAGGER UI ─────────────── */
+.swagger-wrap {
+  background: #fff;
+  color: #3b4151;
+  min-height: 400px;
+}
+.swagger-wrap .swagger-ui {
+  margin: 0;
+  padding: 16px;
+}
+.swagger-wrap .swagger-ui .info { margin: 12px 0; }
+.swagger-wrap .swagger-ui .info .title { color: #10243b; }
+.swagger-wrap .swagger-ui .topbar { display: none; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-muted); }
 .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; }
@@ -256,7 +280,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--card-bg) 60%, var(--app-bg
 .progress-bar { height: 100%; background: var(--accent); }
 
 /* ─────────────── KANBAN / PORTFOLIO ─────────────── */
-.kanban { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; overflow-x: auto; }
+.kanban { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; overflow-x: auto; }
 @media (max-width: 1200px) { .kanban { grid-template-columns: repeat(3, 1fr); } }
 .kanban-col {
   background: color-mix(in srgb, var(--card-bg) 40%, var(--app-bg));
@@ -281,7 +305,11 @@ tbody tr:hover { background: color-mix(in srgb, var(--card-bg) 60%, var(--app-bg
 .tab-link:hover { color: var(--text); }
 
 /* ─────────────── AI PANEL ─────────────── */
-.ai-panel { border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.ai-panel {
+  /* Slightly darker than the card/surface so the white input controls pop. */
+  background: color-mix(in srgb, var(--app-bg) 45%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+}
 .ai-generator-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
 @media (max-width: 900px) { .ai-generator-grid { grid-template-columns: 1fr; } }
 .ai-field-label {
