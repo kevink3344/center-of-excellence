@@ -294,6 +294,10 @@ tbody tr:hover { background: color-mix(in srgb, var(--card-bg) 60%, var(--app-bg
   padding: 12px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s;
 }
 .kanban-card:hover { border-color: var(--accent); }
+/* Keep the priority + status badge row from overflowing a narrow kanban column.
+   The badges are nowrap, so without wrapping they push past the column edge. */
+.kanban-card .row { flex-wrap: wrap; }
+.kanban-card .row .badge { min-width: 0; }
 
 /* ─────────────── TABS ─────────────── */
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }

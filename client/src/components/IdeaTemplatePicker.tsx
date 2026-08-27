@@ -46,13 +46,25 @@ export default function IdeaTemplatePicker({
     }
     const idea = ideas.find((i) => i.id === id);
     if (!idea) return;
+
+    // The server stores `design` as a JSON string (JSON.stringify in the
+    // controller). Parse it back to an object so IdeaDesignView can render it.
+    let design: unknown = undefined;
+    if (idea.design) {
+      try {
+        design = typeof idea.design === 'string' ? JSON.parse(idea.design) : idea.design;
+      } catch {
+        design = undefined;
+      }
+    }
+
     onSelect({
       ideaText: idea.ideaText || '',
       userClass: idea.userClass ?? undefined,
       appSize: idea.appSize ?? undefined,
       audience: idea.audience ?? undefined,
       connectivity: idea.connectivity ?? undefined,
-      design: idea.design ?? undefined,
+      design,
     });
   };
 

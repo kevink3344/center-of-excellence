@@ -171,11 +171,18 @@ export default function ProjectDetail() {
     })),
   };
 
+  // Build the subtitle from the parts that actually exist so it never shows a
+  // dangling "· — · PM: —" (which reads like a broken date/time) when the
+  // business unit or PM is unset.
+  const subParts = [p.code];
+  if (p.bu !== '—') subParts.push(p.bu);
+  if (p.pm !== '—') subParts.push(`PM: ${p.pm}`);
+
   return (
     <>
       <PageHead
         title={p.title}
-        sub={`${p.code} · ${p.bu} · PM: ${p.pm}`}
+        sub={subParts.join(' · ')}
         actions={
           <div className="row">
             <button className="secondary-button" onClick={() => navigate('/portfolio')}>
